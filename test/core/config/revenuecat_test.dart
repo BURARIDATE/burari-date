@@ -77,10 +77,9 @@ void main() {
       );
     });
 
-    test('iOS用のキーを設定するときは、iOS用(appl_で始まる)にし、Test Storeのキーを入れない', () {
-      if (kRevenueCatIosApiKey.isNotEmpty) {
-        expect(kRevenueCatIosApiKey, startsWith('appl_'));
-      }
+    test('iOS用のキーは、設定済みで、iOS用(appl_で始まる)。Test Storeのキーを入れない', () {
+      // 空のまま審査に出すと、購入できず、却下される。
+      expect(kRevenueCatIosApiKey, startsWith('appl_'));
       expect(kRevenueCatIosApiKey, isNot(startsWith('test_')));
     });
   });
