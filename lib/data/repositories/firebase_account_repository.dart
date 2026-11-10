@@ -8,7 +8,7 @@ import '../datasources/cloud/anonymous_auth.dart';
 /// 匿名アカウントを登録アカウントに変換する(登録)・登録済みのアカウントに入る(ログイン)、
 /// 本物の[AccountRepository](Issue #130・#136)。
 ///
-/// 登録は、いまの匿名アカウントにGoogleの認証情報を紐づける。ユーザーIDが
+/// 登録は、いまの匿名アカウントにGoogle・Appleの認証情報を紐づける。ユーザーIDが
 /// 変わらないので、履歴・お気に入り・無料枠の回数は、そのまま引き継がれる。
 /// ログアウトすると、新しい匿名アカウントで、ゲストとして使い続ける。
 class FirebaseAccountRepository implements AccountRepository {
@@ -45,11 +45,13 @@ class FirebaseAccountRepository implements AccountRepository {
       // 起動時のログインに失敗していても、ここでやり直してから、紐づける。
       await _ensureSignedIn();
       switch (method) {
+        case LoginMethod.apple:
+          await _auth.linkWithApple();
         case LoginMethod.google:
           await _auth.linkWithGoogle();
       }
     } catch (e) {
-      throw accountExceptionFrom(e);
+      throw accountExceptionFrom(e, method: method);
     }
     return _auth.currentStatus();
   }
@@ -58,11 +60,13 @@ class FirebaseAccountRepository implements AccountRepository {
   Future<AccountStatus> signIn(LoginMethod method) async {
     try {
       switch (method) {
+        case LoginMethod.apple:
+          await _auth.signInWithApple();
         case LoginMethod.google:
           await _auth.signInWithGoogle();
       }
     } catch (e) {
-      throw accountExceptionFrom(e);
+      throw accountExceptionFrom(e, method: method);
     }
     // ログインで、別のアカウントに切り替わった。次の操作の前に、ログインが、切れて
     // いないことを確かめる(通常は、すでに、ログイン済み)。
@@ -89,6 +93,18 @@ class FirebaseAccountRepository implements AccountRepository {
 
   @override
   Future<AccountStatus> deleteAccount() async {
+    // Appleで登録したアカウントは、先に、Appleとの連携を解除する(審査ガイドライン
+    // 5.1.1(v))。取りやめた・失敗したときは、削除に進まない(サーバーのデータは残る)。
+    try {
+      await _auth.revokeAppleIfLinked();
+    } catch (e) {
+      final error = accountExceptionFrom(e, method: LoginMethod.apple);
+      if (error is AccountCancelledException) throw error;
+      throw const AccountException(
+        'Appleとの連携を解除できなかったため、アカウントを削除できませんでした。'
+        '時間をおいて、もう一度お試しください。',
+      );
+    }
     try {
       await _deleteOnServer();
     } catch (_) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/firebase_account_repository.dart';
@@ -9,6 +10,22 @@ import 'purchase_providers.dart';
 
 final accountRepositoryProvider = Provider<AccountRepository>((ref) {
   return FirebaseAccountRepository();
+});
+
+/// この端末で使えるログイン方法を、画面に出す順に返す。
+///
+/// iOSは、Appleでサインインを先に出す(Googleと同じ扱いで出す必要がある。審査ガイドライン
+/// 4.8)。Androidは、Googleだけ。
+List<LoginMethod> loginMethodsFor(TargetPlatform platform) {
+  if (platform == TargetPlatform.iOS) {
+    return const [LoginMethod.apple, LoginMethod.google];
+  }
+  return const [LoginMethod.google];
+}
+
+/// この端末で使えるログイン方法(画面に出す順)。テストでは、上書きして、iOSの表示を確かめる。
+final loginMethodsProvider = Provider<List<LoginMethod>>((ref) {
+  return loginMethodsFor(defaultTargetPlatform);
 });
 
 /// アカウントの状態(ゲスト/登録済み)。登録・ログアウトに追従する。

@@ -16,6 +16,7 @@ class _FakeAccountAuth implements AccountAuth {
   Object? linkError;
   Object? signInError;
   Object? signOutError;
+  Object? revokeError;
 
   @override
   AccountStatus currentStatus() => status;
@@ -38,6 +39,31 @@ class _FakeAccountAuth implements AccountAuth {
       method: LoginMethod.google,
       email: 'existing@example.com',
     );
+  }
+
+  @override
+  Future<void> linkWithApple() async {
+    log.add('linkApple');
+    if (linkError != null) throw linkError!;
+    status = const AccountStatus.registered(
+      method: LoginMethod.apple,
+      email: 'relay@privaterelay.appleid.com',
+    );
+  }
+
+  @override
+  Future<void> signInWithApple() async {
+    log.add('signInApple');
+    if (signInError != null) throw signInError!;
+    status = const AccountStatus.registered(method: LoginMethod.apple);
+  }
+
+  /// 本物と同じく、Appleで登録しているときだけ、解除する。
+  @override
+  Future<void> revokeAppleIfLinked() async {
+    if (status.method != LoginMethod.apple) return;
+    log.add('revokeApple');
+    if (revokeError != null) throw revokeError!;
   }
 
   @override
@@ -165,6 +191,39 @@ void main() {
     });
   });
 
+  group('register(Apple)', () {
+    test('ログインを確かめてから、Appleで紐づけて、登録済みの状態を返す', () async {
+      final status = await newRepository().register(LoginMethod.apple);
+
+      expect(log, ['ensureSignedIn', 'linkApple']);
+      expect(status.method, LoginMethod.apple);
+    });
+
+    test('Appleのサインインの画面を閉じたときは、取りやめの例外にする', () async {
+      auth.linkError = FirebaseAuthException(code: 'canceled');
+
+      await expectLater(
+        newRepository().register(LoginMethod.apple),
+        throwsA(isA<AccountCancelledException>()),
+      );
+    });
+
+    test('すでに登録されているApple IDは、「Appleでログイン」から入るよう案内する', () async {
+      auth.linkError = FirebaseAuthException(code: 'credential-already-in-use');
+
+      await expectLater(
+        newRepository().register(LoginMethod.apple),
+        throwsA(
+          isA<AccountAlreadyRegisteredException>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('Appleアカウント'), contains('「Appleでログイン」')),
+          ),
+        ),
+      );
+    });
+  });
+
   group('signIn(ログイン)', () {
     test('Googleでログインして、ログイン後の状態を返す(紐づけは、しない)', () async {
       final status = await newRepository().signIn(LoginMethod.google);
@@ -219,6 +278,14 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('Appleでログインして、ログイン後の状態を返す', () async {
+      final status = await newRepository().signIn(LoginMethod.apple);
+
+      expect(status.method, LoginMethod.apple);
+      expect(log, contains('signInApple'));
+      expect(log, isNot(contains('signIn')));
     });
 
     test('ログインのあとの、サインインの確認に失敗しても、ログインは成功にする', () async {
@@ -285,6 +352,48 @@ void main() {
       expect(log, ['deleteOnServer']);
     });
 
+    test('Appleで登録したアカウントは、先にAppleとの連携を解除してから、削除する', () async {
+      auth.status = const AccountStatus.registered(method: LoginMethod.apple);
+
+      final status = await newRepository().deleteAccount();
+
+      expect(log, [
+        'revokeApple',
+        'deleteOnServer',
+        'signOut',
+        'ensureSignedIn',
+      ]);
+      expect(status, const AccountStatus.guest());
+    });
+
+    test('Appleでの確認を取りやめたら、取りやめの例外にして、削除しない', () async {
+      auth.status = const AccountStatus.registered(method: LoginMethod.apple);
+      auth.revokeError = FirebaseAuthException(code: 'canceled');
+
+      await expectLater(
+        newRepository().deleteAccount(),
+        throwsA(isA<AccountCancelledException>()),
+      );
+      expect(log, ['revokeApple']);
+    });
+
+    test('Appleとの連携を解除できなかったら、利用者向けのエラーにして、削除しない', () async {
+      auth.status = const AccountStatus.registered(method: LoginMethod.apple);
+      auth.revokeError = FirebaseAuthException(code: 'network-request-failed');
+
+      await expectLater(
+        newRepository().deleteAccount(),
+        throwsA(
+          isA<AccountException>().having(
+            (e) => e.message,
+            'message',
+            contains('Appleとの連携を解除できなかった'),
+          ),
+        ),
+      );
+      expect(log, ['revokeApple']);
+    });
+
     test('端末のログアウトや、匿名のログインし直しに失敗しても、削除は成功にする', () async {
       auth.signOutError = FirebaseAuthException(code: 'user-not-found');
       ensureSignedInError = Exception('network');
@@ -327,6 +436,29 @@ void main() {
         ).message,
         contains('すでにGoogleで登録済み'),
       );
+    });
+
+    test('すでにAppleで登録済みのときは、Appleと出す', () {
+      expect(
+        accountExceptionFrom(
+          FirebaseAuthException(code: 'provider-already-linked'),
+          method: LoginMethod.apple,
+        ).message,
+        contains('すでにAppleで登録済み'),
+      );
+    });
+
+    test('Appleのサインインの失敗は、もう一度試すよう案内する', () {
+      for (final code in ['failed', 'invalid-response', 'not-handled']) {
+        expect(
+          accountExceptionFrom(
+            FirebaseAuthException(code: code),
+            method: LoginMethod.apple,
+          ).message,
+          contains('Appleでサインインできませんでした'),
+          reason: code,
+        );
+      }
     });
 
     test('例外は、すでに利用者向けなら、そのまま返す', () {

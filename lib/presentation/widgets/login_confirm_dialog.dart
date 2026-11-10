@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// 「Googleでログイン」を押したときの、確認のダイアログ(Issue #152・#153)。
+import '../../domain/entities/account_status.dart';
+
+/// 「Googleでログイン」などを押したときの、確認のダイアログ(Issue #152・#153)。
 ///
-/// ログインすると、そのGoogleアカウントのアカウントに切り替わり、**いまのゲストの履歴・
+/// ログインすると、その[method]のアカウントに切り替わり、**いまのゲストの履歴・
 /// お気に入りは、引き継がれず、使えなくなる**。登録済みのアカウントなら、以前の履歴・
 /// お気に入り・購読が、戻る。うっかり、ゲストの内容を、失わないよう、先に確認する。
 ///
 /// 「ログインする」を選んだときだけ、trueを返す(「やめる」や、画面の外を押したときは、
 /// false)。アカウント画面と、プラン画面で、同じ文面を使う。
-Future<bool> showLoginConfirmDialog(BuildContext context) async {
+Future<bool> showLoginConfirmDialog(
+  BuildContext context,
+  LoginMethod method,
+) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: const Text('ログインしますか?'),
-      content: const Text(
-        'Googleアカウントで、ログインします。\n'
+      content: Text(
+        '${method.label}アカウントで、ログインします。\n'
         'いまのゲストの履歴とお気に入りは、引き継がれず、使えなくなります。\n'
         '登録済みのアカウントなら、以前の履歴・お気に入り・購読が、戻ります。',
       ),

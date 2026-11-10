@@ -1,8 +1,11 @@
 /// ログイン方法。アカウント登録に使える方法を、ここに足していく。
 ///
-/// いまはAndroidのみのため、Googleだけ。iOSに出すときは、Appleでのログインを足す
-/// (Issue #10)。
+/// 端末で使える方法は、OSで異なる(iOSはAppleとGoogle、AndroidはGoogleだけ)。画面は、
+/// `loginMethodsProvider`の一覧を使う。
 enum LoginMethod {
+  /// Appleでサインイン(iOSのみ)。Googleなどの外部のログインを出すアプリは、Appleでの
+  /// ログインも出す必要がある(App Storeの審査ガイドライン4.8)。
+  apple('Apple'),
   google('Google');
 
   const LoginMethod(this.label);

@@ -24,6 +24,19 @@
 		<string>????</string>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<!-- Googleでログインのあと、アプリに戻るためのURLスキーム(iOS クライアントIDを逆順にしたもの。
+		     lib/core/config/google_sign_in.dart の kGoogleIosClientId と揃える) -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.889357641434-cb85nn6uaht87kkle67oe3m5k4h827p9</string>
+				</array>
+			</dict>
+		</array>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<!-- 暗号化は、OS標準(HTTPS)のものだけを使う。App Store Connectでの書類の提出は不要 -->

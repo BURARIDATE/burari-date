@@ -98,23 +98,22 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
     );
   }
 
-  /// アカウント未登録のときの、「Googleで登録して購入する」(Issue #151)。Googleで登録
-  /// し、登録できたら、続けて購入に進む。画面を行き来しなくてよいよう、登録から購入まで、
+  /// アカウント未登録のときの、「Googleで登録して購入する」など(Issue #151)。[method]で
+  /// 登録し、登録できたら、続けて購入に進む。画面を行き来しなくてよいよう、登録から購入まで、
   /// 処理中のままにする。
   ///
   /// - 登録を取りやめたとき: 何も出さず、購入には進まない。
   /// - 登録に失敗したとき: その旨を知らせ、購入には進まない。
   /// - 登録できて、購入だけ、失敗・取りやめたとき: 登録済みのままになる。プラン画面に、
   ///   購入のボタンが出るので、そこから、もう一度、購入できる。
-  Future<void> _registerAndPurchase() async {
+  Future<void> _registerAndPurchase(LoginMethod method) async {
     if (_isBusy) return;
     setState(() => _isBusy = true);
     final registered = await _run<void>(
       errorTitle: 'アカウントを登録できませんでした',
       alreadyBusy: true,
       keepBusyOnSuccess: true,
-      action: () =>
-          ref.read(accountStatusProvider.notifier).register(LoginMethod.google),
+      action: () => ref.read(accountStatusProvider.notifier).register(method),
     );
     if (!registered || !mounted) return;
     await _run<SubscriptionStatus>(
@@ -127,19 +126,18 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
     );
   }
 
-  /// 登録済みの方の、「Googleでログイン」(Issue #153)。確認のあとに、Googleのアカウントを
-  /// 選んで、そのアカウントに切り替える。いまのゲストの履歴・お気に入りは、使えなくなる。
+  /// 登録済みの方の、「Googleでログイン」など(Issue #153)。確認のあとに、[method]の
+  /// アカウントを選んで、そのアカウントに切り替える。いまのゲストの履歴・お気に入りは、使えなくなる。
   ///
   /// ログインできたら、新しいアカウントの、購読の状態を、読み直す。**すでに購読中なら、購入には
   /// 進まず**、「ご利用中のプランです」を出す。購読していなければ、「…で購入する」が出る。
-  Future<void> _signIn() async {
+  Future<void> _signIn(LoginMethod method) async {
     if (_isBusy) return;
-    final confirmed = await showLoginConfirmDialog(context);
+    final confirmed = await showLoginConfirmDialog(context, method);
     if (!confirmed || !mounted) return;
     final signedIn = await _run<void>(
       errorTitle: 'ログインできませんでした',
-      action: () =>
-          ref.read(accountStatusProvider.notifier).signIn(LoginMethod.google),
+      action: () => ref.read(accountStatusProvider.notifier).signIn(method),
     );
     if (!signedIn || !mounted) return;
     var isSubscribed = false;
@@ -273,6 +271,7 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
                   )
                 else if (!hasAccount)
                   _RegisterAndPurchaseBody(
+                    methods: ref.watch(loginMethodsProvider),
                     isBusy: _isBusy,
                     onPressed: _registerAndPurchase,
                     onSignIn: _signIn,
@@ -435,16 +434,19 @@ class _PurchaseBody extends StatelessWidget {
 /// せずに済むよう、「登録して購入する」の、1つのボタンにする(Issue #151)。
 class _RegisterAndPurchaseBody extends StatelessWidget {
   const _RegisterAndPurchaseBody({
+    required this.methods,
     required this.isBusy,
     required this.onPressed,
     required this.onSignIn,
   });
 
+  /// 出すログイン方法(出す順)。
+  final List<LoginMethod> methods;
   final bool isBusy;
-  final VoidCallback onPressed;
+  final void Function(LoginMethod method) onPressed;
 
   /// 登録済みの方の、ログイン(登録して購入する、とは、別のボタン)。
-  final VoidCallback onSignIn;
+  final void Function(LoginMethod method) onSignIn;
 
   @override
   Widget build(BuildContext context) {
@@ -459,21 +461,25 @@ class _RegisterAndPurchaseBody extends StatelessWidget {
           '登録すると、いまの履歴とお気に入りを、そのまま引き継げます。',
         ),
         const SizedBox(height: AppSpacing.md),
-        ElevatedButton(
-          onPressed: isBusy ? null : onPressed,
-          child: isBusy
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text('${LoginMethod.google.label}で登録して購入する'),
-        ),
+        for (final method in methods) ...[
+          if (method != methods.first) const SizedBox(height: AppSpacing.sm),
+          ElevatedButton(
+            onPressed: isBusy ? null : () => onPressed(method),
+            child: isBusy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text('${method.label}で登録して購入する'),
+          ),
+        ],
         const SizedBox(height: AppSpacing.sm),
-        TextButton(
-          onPressed: isBusy ? null : onSignIn,
-          child: Text('登録済みの方は、${LoginMethod.google.label}でログイン'),
-        ),
+        for (final method in methods)
+          TextButton(
+            onPressed: isBusy ? null : () => onSignIn(method),
+            child: Text('登録済みの方は、${method.label}でログイン'),
+          ),
       ],
     );
   }
