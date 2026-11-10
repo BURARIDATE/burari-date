@@ -25,7 +25,7 @@ Google Playは[ストア公開チェックリスト](ストア公開チェック
 - [x] App Store Connectでアプリを作成する(名前「ぶらりデートガチャ」、プライマリ言語は日本語、Bundle ID `com.buraridate.burariDate`、SKU `burari-date-ios`。EUのDSAは「トレーダーではない(EUで配信しない)」)
 - [x] 有料アプリ契約(銀行口座・税務。W-8BENは日米租税条約12条1項・0%)を結ぶ
 - [x] サブスクの商品を作り、RevenueCatにつなぎ、`kRevenueCatIosApiKey`を入れる([環境構築手順 7-3](環境構築手順.md))
-- [ ] Appleでサインインを設定する(Firebaseの「Apple」の有効化・連携の解除用のキー。[環境構築手順 7-6](環境構築手順.md))
+- [x] Appleでサインインを設定する(Firebaseの「Apple」の有効化・連携の解除用のキー。[環境構築手順 7-6](環境構築手順.md))。キーは Key ID `K497YXG2HX`(Sign in with Apple、Primary App ID `com.buraridate.burariDate`)。Firebaseの「OAuth コードフローの構成」は、サービスIDに**Bundle ID** `com.buraridate.burariDate`・チームID・キーID・秘密鍵を入れた(iOSのネイティブのログインだけなので、Web用のサービスIDは作っていない。TestFlightで、Appleで登録したアカウントの削除が通るかを確かめる)
 - [ ] App Check: Apple Developer → Keys で DeviceCheck のキーを作り、Firebaseコンソール → App Check → iOSアプリ → DeviceCheck に、キー・Key ID・Team IDを登録する(登録しないと、本番版のトークンが`INVALID`になる。サーバーが必須にするまでは、動きは止まらない)
 - [ ] 公開サイトをデプロイする(規約・ポリシーにApple・App Storeを書いた版): `firebase deploy --only hosting --project burari-date`
 
