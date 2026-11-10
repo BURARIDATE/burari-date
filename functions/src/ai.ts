@@ -88,7 +88,9 @@ async function callClaude(prompt: string): Promise<string> {
     }),
   });
   if (!res.ok) {
-    throw new Error(`Claude API呼び出しに失敗しました: ${res.status}`);
+    throw new Error(
+      `Claude API呼び出しに失敗しました: ${res.status}${await describeApiError(res)}`,
+    );
   }
   const body = (await res.json()) as {
     content?: { type: string; text?: string }[];
@@ -287,4 +289,27 @@ function extractJsonArray(text: string): string | null {
   const end = text.lastIndexOf("]");
   if (start === -1 || end === -1 || end < start) return null;
   return text.slice(start, end + 1);
+}
+
+/**
+ * 失敗した応答から、Anthropicが返した理由(エラーの種類・メッセージ)を取り出す。
+ * 400は、残高不足・リクエストの誤りなど、理由が違っても同じ番号になるため、ログで
+ * 見分けられるようにする(2026-11、残高不足に気づけなかったことから)。取り出せない
+ * ときは空文字。例外はアプリには内部エラーとして返り、この文言は画面に出ない。
+ */
+export async function describeApiError(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as {
+      error?: { type?: unknown; message?: unknown };
+    };
+    const type = typeof body.error?.type === "string" ? body.error.type : "";
+    const message =
+      typeof body.error?.message === "string"
+        ? body.error.message.slice(0, 300)
+        : "";
+    if (!type && !message) return "";
+    return ` (${[type, message].filter(Boolean).join(": ")})`;
+  } catch {
+    return "";
+  }
 }
