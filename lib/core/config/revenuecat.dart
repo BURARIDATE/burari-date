@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// RevenueCat(課金サービス)の、Androidアプリ用の公開APIキー(Issue #132)。
 ///
 /// RevenueCatのダッシュボードの、Android(Google Play)のアプリの設定にある、`goog_`
@@ -8,6 +10,22 @@
 /// 空のときは、リリースのビルドでは、課金を使えない扱いにする(プラン画面は開けるが、
 /// 購入は「課金の設定が、まだ済んでいません」と案内する)。
 const kRevenueCatAndroidApiKey = 'goog_pWLjIMjVIBmJAsNUzIOyPGFZyJb';
+
+/// RevenueCat(課金サービス)の、iOSアプリ用の公開APIキー。
+///
+/// RevenueCatのダッシュボードで、iOS(App Store)のアプリを追加すると表示される、
+/// `appl_`で始まるキー。Android用と同じく、公開用のキー。App Store Connectでの
+/// サブスクの商品の作成と、RevenueCatへのiOSアプリの追加が済んでから、設定する。
+///
+/// **空のまま審査に出さない**(購入が「課金の設定が、まだ済んでいません」となり、
+/// 未完成として却下される)。
+const kRevenueCatIosApiKey = '';
+
+/// [platform]のアプリ用の、本番の公開APIキー。iOS以外は、Android用。
+String productionRevenueCatApiKey(TargetPlatform platform) =>
+    platform == TargetPlatform.iOS
+    ? kRevenueCatIosApiKey
+    : kRevenueCatAndroidApiKey;
 
 /// RevenueCatの「Test Store」の公開APIキー(`test_`で始まる)。Google Playなしで、
 /// 擬似的な購入を試すためのもの。公開用のキーで、秘密ではない。

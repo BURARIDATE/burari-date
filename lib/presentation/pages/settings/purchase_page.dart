@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/subscription_store.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_font_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -14,17 +15,12 @@ import '../../providers/auth_providers.dart';
 import '../../providers/purchase_providers.dart';
 import '../../widgets/login_confirm_dialog.dart';
 import 'commerce_page.dart';
+import 'terms_page.dart';
 
 /// launchUrlと同じ形の関数型。実機では実際のurl_launcher.launchUrlを使うが、
 /// テストでは実プラットフォーム呼び出し(ストアアプリの起動)を避けるため差し替える。
 typedef SubscriptionUrlLauncher =
     Future<bool> Function(Uri url, {LaunchMode mode});
-
-/// Google Playの「定期購入」の画面。解約・支払い方法の変更は、ここから行う。
-/// いまはAndroidのみ。iOSに出すときは、App Storeの定期購入の画面に切り替える。
-final kManageSubscriptionsUrl = Uri.parse(
-  'https://play.google.com/store/account/subscriptions',
-);
 
 /// プラン(月額サブスク)の画面(Issue #131)。
 ///
@@ -202,19 +198,24 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
     return succeeded;
   }
 
-  /// Google Playの「定期購入」の画面を開く(解約・支払い方法の変更のため)。
+  /// ストア(Google Play・App Store)の、購読の管理の画面を開く(解約・支払い方法の
+  /// 変更のため)。
   Future<void> _manageSubscription() async {
+    final store = ref.read(subscriptionStoreProvider);
     bool launched;
     try {
       launched = await widget.launchUrlOverride(
-        kManageSubscriptionsUrl,
+        Uri.parse(store.manageUrl),
         mode: LaunchMode.externalApplication,
       );
     } catch (_) {
       launched = false;
     }
     if (launched || !mounted) return;
-    await _showInfo('Google Playを開けませんでした', 'Google Playアプリの「定期購入」から、ご確認ください。');
+    await _showInfo(
+      '${store.name}を開けませんでした',
+      '${store.managePlace}から、ご確認ください。',
+    );
   }
 
   Future<void> _showInfo(String title, String message) {
@@ -258,6 +259,7 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
               children: [
                 _PlanCard(
                   offer: offer,
+                  store: ref.watch(subscriptionStoreProvider),
                   // 自動更新と解約の案内は、購入の前だけ。購読中は、状態の表示(更新日・
                   // 有効期限)と、管理のボタンがあり、解約済みの画面で、「自動で更新
                   // されます」と、矛盾して出ないようにする。
@@ -284,31 +286,18 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
                     onRestore: _restore,
                   ),
                 // 購入の前に、事業者の情報・価格・解約を確認できるようにする(特定商取引法)。
-                // 購入の邪魔にならないよう、右下に、小さい文字で置く。
+                // 利用規約とプライバシーポリシーも、購入の画面から開けるようにする(App Storeの
+                // 審査ガイドライン3.1.2)。購入の邪魔にならないよう、右下に、小さい文字で置く。
                 const SizedBox(height: AppSpacing.sm),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CommercePage()),
+                const Wrap(
+                  alignment: WrapAlignment.end,
+                  children: [
+                    _FooterLink(label: '利用規約・プライバシーポリシー', page: TermsPage()),
+                    _FooterLink(
+                      label: CommercePage.title,
+                      page: CommercePage(),
                     ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      CommercePage.title,
-                      style: TextStyle(
-                        fontSize: AppFontSizes.caption,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -319,11 +308,51 @@ class _PurchasePageState extends ConsumerState<PurchasePage>
   }
 }
 
+/// 購入の画面の下の、小さい文字のリンク。
+class _FooterLink extends StatelessWidget {
+  const _FooterLink({required this.label, required this.page});
+
+  final String label;
+  final Widget page;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => page)),
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.textSecondary,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: AppFontSizes.caption,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+}
+
 /// プランの案内。
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.offer, required this.showRenewalNotice});
+  const _PlanCard({
+    required this.offer,
+    required this.store,
+    required this.showRenewalNotice,
+  });
 
   final PurchaseOffer offer;
+
+  /// 解約のしかたの案内に出す、ストア。
+  final SubscriptionStore store;
 
   /// 自動更新と解約のしかたの案内を出すか(購入の前だけ)。
   final bool showRenewalNotice;
@@ -373,12 +402,12 @@ class _PlanCard extends StatelessWidget {
           if (showRenewalNotice) ...[
             const SizedBox(height: AppSpacing.md),
             // 定期購入の、期間・自動更新・解約のしかたを、購入の前に、はっきり伝える。
-            const Text(
+            Text(
               '毎月、自動で更新されます。次回の更新日の前までに解約しないと、'
               '次の1か月分の料金がかかります。\n'
-              '解約は、Google Playの「定期購入」から、いつでもできます'
+              '解約は、${store.managePlace}から、いつでもできます'
               '(アプリの中からは、解約できません)。',
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: AppFontSizes.labelSmall,
                 height: 1.6,

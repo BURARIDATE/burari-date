@@ -8,6 +8,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../domain/entities/account_status.dart';
 import '../../../domain/repositories/account_repository.dart';
 import '../../providers/account_providers.dart';
+import '../../providers/purchase_providers.dart';
 import '../../widgets/auth_section.dart';
 import '../../widgets/login_confirm_dialog.dart';
 
@@ -73,15 +74,16 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   /// アカウントを削除する(Issue #191)。元に戻せないため、先に確認する。
   Future<void> _deleteAccount() async {
+    final store = ref.read(subscriptionStoreProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('アカウントを削除しますか?'),
-        content: const Text(
+        content: Text(
           '履歴・お気に入りなど、このアカウントに保存された情報が、すべて削除されます。'
           '元に戻すことは、できません。\n\n'
           '購読中の場合は、アカウントを削除しても、購読は解約されません。'
-          'Google Playの「定期購入」から、別に解約してください。\n\n'
+          '${store.managePlace}から、別に解約してください。\n\n'
           '無料で使える回数は、削除しても、元に戻りません。',
         ),
         actions: [

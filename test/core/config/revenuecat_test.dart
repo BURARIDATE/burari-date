@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:burari_date/core/config/revenuecat.dart';
@@ -62,5 +63,25 @@ void main() {
 
   test('リリースで使う本番のキーに、Test Storeのキーを入れていない', () {
     expect(kRevenueCatAndroidApiKey, isNot(startsWith('test_')));
+  });
+
+  group('iOS', () {
+    test('iOSは、iOS用のキーを使い、それ以外は、Android用のキーを使う', () {
+      expect(
+        productionRevenueCatApiKey(TargetPlatform.iOS),
+        kRevenueCatIosApiKey,
+      );
+      expect(
+        productionRevenueCatApiKey(TargetPlatform.android),
+        kRevenueCatAndroidApiKey,
+      );
+    });
+
+    test('iOS用のキーを設定するときは、iOS用(appl_で始まる)にし、Test Storeのキーを入れない', () {
+      if (kRevenueCatIosApiKey.isNotEmpty) {
+        expect(kRevenueCatIosApiKey, startsWith('appl_'));
+      }
+      expect(kRevenueCatIosApiKey, isNot(startsWith('test_')));
+    });
   });
 }
