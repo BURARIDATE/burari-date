@@ -17,9 +17,9 @@ const kRevenueCatAndroidApiKey = 'goog_pWLjIMjVIBmJAsNUzIOyPGFZyJb';
 /// `appl_`で始まるキー。Android用と同じく、公開用のキー。App Store Connectでの
 /// サブスクの商品の作成と、RevenueCatへのiOSアプリの追加が済んでから、設定する。
 ///
-/// **空のまま審査に出さない**(購入が「課金の設定が、まだ済んでいません」となり、
-/// 未完成として却下される)。
-const kRevenueCatIosApiKey = '';
+/// **空にしない**(購入が「課金の設定が、まだ済んでいません」となり、未完成として
+/// 審査で却下される。テストで確かめている)。
+const kRevenueCatIosApiKey = 'appl_CPocBgrTFyPcnOufDzQLJMyhgrl';
 
 /// [platform]のアプリ用の、本番の公開APIキー。iOS以外は、Android用。
 String productionRevenueCatApiKey(TargetPlatform platform) =>
