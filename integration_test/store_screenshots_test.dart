@@ -68,7 +68,8 @@ void main() {
     if (accept.evaluate().isNotEmpty) {
       for (var i = 0; i < 10; i++) {
         for (final element in find.byType(Scrollable).evaluate()) {
-          final position = (element as StatefulElement).state as ScrollableState;
+          final position =
+              (element as StatefulElement).state as ScrollableState;
           position.position.jumpTo(position.position.maxScrollExtent);
         }
         await wait(tester, const Duration(milliseconds: 300));
