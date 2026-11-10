@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:burari_date/core/config/subscription_store.dart';
 
 import 'package:burari_date/domain/entities/account_status.dart';
 import 'package:burari_date/domain/entities/subscription.dart';
@@ -11,6 +12,7 @@ import 'package:burari_date/domain/repositories/account_repository.dart';
 import 'package:burari_date/domain/repositories/purchase_repository.dart';
 import 'package:burari_date/presentation/pages/settings/commerce_page.dart';
 import 'package:burari_date/presentation/pages/settings/purchase_page.dart';
+import 'package:burari_date/presentation/pages/settings/terms_page.dart';
 import 'package:burari_date/presentation/providers/account_providers.dart';
 import 'package:burari_date/presentation/providers/auth_providers.dart';
 import 'package:burari_date/presentation/providers/purchase_providers.dart';
@@ -120,6 +122,7 @@ void main() {
     Size size = const Size(1170, 2532),
     double pixelRatio = 1.0,
     List<LoginMethod>? loginMethods,
+    SubscriptionStore? store,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = pixelRatio;
@@ -136,6 +139,7 @@ void main() {
             hasAccountProvider.overrideWithValue(hasAccount),
           if (loginMethods != null)
             loginMethodsProvider.overrideWithValue(loginMethods),
+          if (store != null) subscriptionStoreProvider.overrideWithValue(store),
         ],
         child: MaterialApp(
           home: launcher == null
@@ -289,6 +293,28 @@ void main() {
       expect(find.textContaining('次回の更新日の前までに解約しないと'), findsOneWidget);
       expect(find.textContaining('Google Playの「定期購入」から'), findsOneWidget);
       expect(find.textContaining('アプリの中からは、解約できません'), findsOneWidget);
+    });
+
+    testWidgets('iOSでは、App Storeの解約のしかたを案内し、Google Playとは書かない', (tester) async {
+      await pumpPage(
+        tester,
+        _FakePurchaseRepository(),
+        store: SubscriptionStore.appStore,
+      );
+
+      expect(find.textContaining('「サブスクリプション」から'), findsOneWidget);
+      expect(find.textContaining('Google Play'), findsNothing);
+    });
+
+    testWidgets('購入の画面から、利用規約・プライバシーポリシーを開ける(App Storeの審査ガイドライン3.1.2)', (
+      tester,
+    ) async {
+      await pumpPage(tester, _FakePurchaseRepository());
+
+      await tester.tap(find.text('利用規約・プライバシーポリシー'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TermsPage), findsOneWidget);
     });
 
     testWidgets('アカウント未登録でも、同じ案内を出す(購入の前に、読めるように)', (tester) async {
@@ -499,6 +525,39 @@ void main() {
       );
       expect(openedMode, LaunchMode.externalApplication);
       expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('iOSでは、App Storeのサブスクリプションの画面を開く', (tester) async {
+      Uri? opened;
+      await pumpPage(
+        tester,
+        _FakePurchaseRepository(const SubscriptionStatus.active()),
+        store: SubscriptionStore.appStore,
+        launcher: (uri, {mode = LaunchMode.platformDefault}) async {
+          opened = uri;
+          return true;
+        },
+      );
+
+      await tester.tap(find.text('定期購入を管理する(解約など)'));
+      await tester.pumpAndSettle();
+
+      expect(opened, Uri.parse('https://apps.apple.com/account/subscriptions'));
+    });
+
+    testWidgets('iOSで開けなかったときは、App Storeとして知らせる', (tester) async {
+      await pumpPage(
+        tester,
+        _FakePurchaseRepository(const SubscriptionStatus.active()),
+        store: SubscriptionStore.appStore,
+        launcher: (uri, {mode = LaunchMode.platformDefault}) async => false,
+      );
+
+      await tester.tap(find.text('定期購入を管理する(解約など)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('App Storeを開けませんでした'), findsOneWidget);
+      expect(find.textContaining('「設定」アプリ'), findsOneWidget);
     });
 
     testWidgets('開けなかったときは、ダイアログで知らせる', (tester) async {

@@ -77,7 +77,7 @@ abstract class PurchasesGateway {
   Future<EntitlementState> loadState();
 
   /// 保存してある状態(SDKのキャッシュ)を捨てて、最新の権利の状態を、取り直す。
-  /// Google Playの「定期購入」で、解約・更新されたなど、アプリの外の変更を、反映する。
+  /// ストア(Google Play・App Store)で、解約・更新されたなど、アプリの外の変更を、反映する。
   Future<EntitlementState> refreshState();
 
   /// 月額プランを購入する。購入後の権利の状態を返す。
@@ -90,7 +90,12 @@ abstract class PurchasesGateway {
 /// `purchases_flutter`を使う、本物の[PurchasesGateway]。
 class RevenueCatGateway implements PurchasesGateway {
   RevenueCatGateway({String? apiKey})
-    : apiKey = apiKey ?? resolveRevenueCatApiKey(isReleaseMode: kReleaseMode);
+    : apiKey =
+          apiKey ??
+          resolveRevenueCatApiKey(
+            isReleaseMode: kReleaseMode,
+            production: productionRevenueCatApiKey(defaultTargetPlatform),
+          );
 
   /// RevenueCatの公開APIキー。リリースのビルドでは、本番のキーだけ(Test Storeの
   /// キーは、リリースで使うとアプリが落ちるため、使わない)。
@@ -102,8 +107,8 @@ class RevenueCatGateway implements PurchasesGateway {
   bool get isAvailable =>
       apiKey.isNotEmpty &&
       !kIsWeb &&
-      // いまはAndroidのみ。iOSに出すときに、iOS用のキーと一緒に、足す。
-      defaultTargetPlatform == TargetPlatform.android;
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
   Future<void> prepare(String uid) => _guard(() async {

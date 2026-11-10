@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:burari_date/core/config/subscription_store.dart';
 import 'package:burari_date/domain/entities/account_status.dart';
 import 'package:burari_date/domain/repositories/account_repository.dart';
 import 'package:burari_date/presentation/pages/settings/account_page.dart';
 import 'package:burari_date/presentation/providers/account_providers.dart';
+import 'package:burari_date/presentation/providers/purchase_providers.dart';
 
 /// 状態を持つだけの偽のリポジトリ。[registerError]・[signOutError]を設定すると、その
 /// 例外で失敗する。[registerGate]を設定すると、登録の完了を、それが完了するまで遅らせる。
@@ -77,6 +79,7 @@ void main() {
     WidgetTester tester,
     _FakeAccountRepository repository, {
     List<LoginMethod>? loginMethods,
+    SubscriptionStore? store,
   }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 1.0;
@@ -88,6 +91,7 @@ void main() {
           accountRepositoryProvider.overrideWithValue(repository),
           if (loginMethods != null)
             loginMethodsProvider.overrideWithValue(loginMethods),
+          if (store != null) subscriptionStoreProvider.overrideWithValue(store),
         ],
         child: const MaterialApp(home: AccountPage()),
       ),
@@ -408,6 +412,22 @@ void main() {
 
       expect(repository.signOutCount, 0);
       expect(find.text('アカウント登録済み'), findsOneWidget);
+    });
+
+    testWidgets('iOSでは、削除の確認で、App Storeの解約のしかたを案内する', (tester) async {
+      await pumpPage(
+        tester,
+        _FakeAccountRepository(
+          const AccountStatus.registered(method: LoginMethod.apple),
+        ),
+        store: SubscriptionStore.appStore,
+      );
+
+      await tester.tap(find.text('アカウントを削除'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('「サブスクリプション」から'), findsOneWidget);
+      expect(find.textContaining('Google Play'), findsNothing);
     });
 
     testWidgets('「アカウントを削除」は、確認のあとに行い、ゲストの表示に戻る', (tester) async {

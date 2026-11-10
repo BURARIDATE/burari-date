@@ -1,11 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/config/subscription_store.dart';
 import '../../data/repositories/revenuecat_purchase_repository.dart';
 import '../../domain/entities/subscription.dart';
 import '../../domain/repositories/purchase_repository.dart';
 
 final purchaseRepositoryProvider = Provider<PurchaseRepository>((ref) {
   return RevenueCatPurchaseRepository();
+});
+
+/// この端末で、定期購読を扱うストア(解約のしかたの案内・管理の画面)。テストでは、
+/// 上書きして、iOSの表示を確かめる。
+final subscriptionStoreProvider = Provider<SubscriptionStore>((ref) {
+  return SubscriptionStore.of(defaultTargetPlatform);
 });
 
 /// 購入できるプランの案内(価格など)。
@@ -23,7 +31,7 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionStatus> {
     return ref.read(purchaseRepositoryProvider).loadStatus();
   }
 
-  /// 購読の状態を、ストアの最新に、取り直す。Google Playの「定期購入」で、解約・更新
+  /// 購読の状態を、ストアの最新に、取り直す。ストアの購読の管理の画面で、解約・更新
   /// されたあとの表示を、そろえるため。読み込み中の表示には戻さず、いまの表示のまま、
   /// 静かに更新する。取り直しに失敗したときは、いまの表示を残す(エラーにしない)。
   Future<void> refresh() async {

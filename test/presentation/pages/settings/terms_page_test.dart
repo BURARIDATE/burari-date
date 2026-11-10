@@ -88,6 +88,24 @@ void main() {
       expect(commerce, isNot(contains('準備中')));
     });
 
+    test('iPhone版のため、Appleでサインイン・App Storeのことも書く', () {
+      final terms = all(termsSections);
+      final privacy = all(privacySections);
+      final commerce = all(commerceSections);
+      final deletion = all(accountDeletionSections);
+
+      expect(terms, allOf(contains('Apple Account'), contains('App Store')));
+      expect(privacy, contains('Appleでサインイン'));
+      expect(privacy, contains('Apple(Appleでサインイン、App Store)'));
+      expect(privacy, contains('転送用のメールアドレス'));
+      expect(privacy, contains('Appleとの連携も解除'));
+      expect(commerce, allOf(contains('App Store'), contains('iOS 15.0')));
+      expect(deletion, allOf(contains('iPhone'), contains('サブスクリプション')));
+      expect(deletion, contains('Appleとの連携も解除'));
+      // メールアドレスを、Googleアカウントだけから取る、という古い記載が残っていない。
+      expect(privacy, isNot(contains('(Googleアカウントのもの)')));
+    });
+
     test('プライバシーポリシーには、お問い合わせで、メールアドレスを取得することを書く', () {
       final privacy = all(privacySections);
 
