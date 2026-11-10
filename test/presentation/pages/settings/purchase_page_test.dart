@@ -119,6 +119,7 @@ void main() {
     _FakeAccountRepository? accountRepository,
     Size size = const Size(1170, 2532),
     double pixelRatio = 1.0,
+    List<LoginMethod>? loginMethods,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = pixelRatio;
@@ -133,6 +134,8 @@ void main() {
             accountRepositoryProvider.overrideWithValue(accountRepository)
           else
             hasAccountProvider.overrideWithValue(hasAccount),
+          if (loginMethods != null)
+            loginMethodsProvider.overrideWithValue(loginMethods),
         ],
         child: MaterialApp(
           home: launcher == null
@@ -696,6 +699,58 @@ void main() {
     });
   });
 
+  group('アカウント未登録: iOS(Appleでも登録・ログインできる)', () {
+    testWidgets('Appleを先に、Googleも、登録して購入する・ログインの入口を出す', (tester) async {
+      await pumpPage(
+        tester,
+        _FakePurchaseRepository(),
+        hasAccount: false,
+        loginMethods: loginMethodsFor(TargetPlatform.iOS),
+      );
+
+      final apple = find.widgetWithText(ElevatedButton, 'Appleで登録して購入する');
+      final google = find.widgetWithText(ElevatedButton, 'Googleで登録して購入する');
+      expect(apple, findsOneWidget);
+      expect(google, findsOneWidget);
+      expect(tester.getRect(apple).top, lessThan(tester.getRect(google).top));
+      expect(find.text('登録済みの方は、Appleでログイン'), findsOneWidget);
+      expect(find.text('登録済みの方は、Googleでログイン'), findsOneWidget);
+    });
+
+    testWidgets('Appleで登録して購入すると、Appleで登録してから、購入する', (tester) async {
+      final log = <String>[];
+      final account = _FakeAccountRepository(log);
+      await pumpPage(
+        tester,
+        _FakePurchaseRepository()..log = log,
+        accountRepository: account,
+        loginMethods: loginMethodsFor(TargetPlatform.iOS),
+      );
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Appleで登録して購入する'));
+      await tester.pumpAndSettle();
+
+      expect(log, ['register', 'purchase']);
+      expect(account.status.method, LoginMethod.apple);
+    });
+
+    testWidgets('ボタンが増えても、スクロールなしの、1画面に収まる(iPhone 18 Pro)', (tester) async {
+      await pumpPage(
+        tester,
+        _FakePurchaseRepository(),
+        hasAccount: false,
+        size: const Size(1206, 2622),
+        pixelRatio: 3.0,
+        loginMethods: loginMethodsFor(TargetPlatform.iOS),
+      );
+
+      final position = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      expect(position.maxScrollExtent, 0);
+    });
+  });
+
   group('アカウント未登録: 登録済みの方の、ログイン(Issue #153)', () {
     Finder signInLink() => find.text('登録済みの方は、Googleでログイン');
 
@@ -846,7 +901,7 @@ void main() {
     testWidgets('登録で、すでに登録済みのGoogleアカウントだったら、「ログイン」へ誘導する', (tester) async {
       final log = <String>[];
       final account = _FakeAccountRepository(log)
-        ..registerError = const AccountAlreadyRegisteredException();
+        ..registerError = AccountAlreadyRegisteredException();
       await pumpPage(
         tester,
         _FakePurchaseRepository()..log = log,

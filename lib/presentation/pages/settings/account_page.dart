@@ -39,7 +39,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   /// 以前の履歴・お気に入り・購読が戻る)。
   Future<void> _signIn(LoginMethod method) async {
     if (_isBusy) return;
-    final confirmed = await showLoginConfirmDialog(context);
+    final confirmed = await showLoginConfirmDialog(context, method);
     if (!confirmed || !mounted) return;
     await _run(
       errorTitle: 'ログインできませんでした',
@@ -171,6 +171,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                 )
               else
                 _GuestBody(
+                  methods: ref.watch(loginMethodsProvider),
                   isBusy: _isBusy,
                   onRegister: _register,
                   onSignIn: _signIn,
@@ -243,11 +244,14 @@ class _Header extends StatelessWidget {
 /// ゲストのときの、登録の案内とボタン。
 class _GuestBody extends StatelessWidget {
   const _GuestBody({
+    required this.methods,
     required this.isBusy,
     required this.onRegister,
     required this.onSignIn,
   });
 
+  /// 出すログイン方法(出す順)。
+  final List<LoginMethod> methods;
   final bool isBusy;
   final void Function(LoginMethod method) onRegister;
 
@@ -267,7 +271,9 @@ class _GuestBody extends StatelessWidget {
           '無料で使える回数を使い切ったあとは、アカウントの登録と課金が必要です。',
         ),
         const SizedBox(height: AppSpacing.md),
-        for (final method in LoginMethod.values)
+        for (final method in methods) ...[
+          // ボタンが2つ以上(iOS)のときは、間をあける。
+          if (method != methods.first) const SizedBox(height: AppSpacing.sm),
           ElevatedButton(
             onPressed: isBusy ? null : () => onRegister(method),
             child: isBusy
@@ -278,6 +284,7 @@ class _GuestBody extends StatelessWidget {
                   )
                 : Text('${method.label}で登録する'),
           ),
+        ],
         const OrDivider(),
         const AuthSectionHeading('すでに登録済みの方'),
         const _BodyText(
@@ -285,11 +292,13 @@ class _GuestBody extends StatelessWidget {
           'いまのゲストの履歴とお気に入りは、引き継がれません。',
         ),
         const SizedBox(height: AppSpacing.md),
-        for (final method in LoginMethod.values)
+        for (final method in methods) ...[
+          if (method != methods.first) const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
             onPressed: isBusy ? null : () => onSignIn(method),
             child: Text('${method.label}でログイン'),
           ),
+        ],
       ],
     );
   }

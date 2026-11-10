@@ -75,20 +75,84 @@ class _FakeAccountRepository implements AccountRepository {
 void main() {
   Future<void> pumpPage(
     WidgetTester tester,
-    _FakeAccountRepository repository,
-  ) async {
+    _FakeAccountRepository repository, {
+    List<LoginMethod>? loginMethods,
+  }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [accountRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          accountRepositoryProvider.overrideWithValue(repository),
+          if (loginMethods != null)
+            loginMethodsProvider.overrideWithValue(loginMethods),
+        ],
         child: const MaterialApp(home: AccountPage()),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  group('ログイン方法(OSごと)', () {
+    test('iOSはAppleを先に、Googleも出す。AndroidはGoogleだけ', () {
+      expect(loginMethodsFor(TargetPlatform.iOS), [
+        LoginMethod.apple,
+        LoginMethod.google,
+      ]);
+      expect(loginMethodsFor(TargetPlatform.android), [LoginMethod.google]);
+    });
+
+    testWidgets('iOSでは、Appleの登録・ログインのボタンを、Googleより先に出す', (tester) async {
+      await pumpPage(
+        tester,
+        _FakeAccountRepository(),
+        loginMethods: loginMethodsFor(TargetPlatform.iOS),
+      );
+
+      expect(find.text('Appleで登録する'), findsOneWidget);
+      expect(find.text('Googleで登録する'), findsOneWidget);
+      expect(find.text('Appleでログイン'), findsOneWidget);
+      expect(find.text('Googleでログイン'), findsOneWidget);
+      expect(
+        tester.getRect(find.text('Appleで登録する')).top,
+        lessThan(tester.getRect(find.text('Googleで登録する')).top),
+      );
+    });
+
+    testWidgets('Appleで登録すると、ログイン方法: Appleの表示になる', (tester) async {
+      final repository = _FakeAccountRepository();
+      await pumpPage(
+        tester,
+        repository,
+        loginMethods: loginMethodsFor(TargetPlatform.iOS),
+      );
+
+      await tester.tap(find.text('Appleで登録する'));
+      await tester.pumpAndSettle();
+
+      expect(repository.registered, [LoginMethod.apple]);
+      expect(find.text('ログイン方法: Apple'), findsOneWidget);
+    });
+
+    testWidgets('Appleでログインの確認は、Appleアカウントと出す', (tester) async {
+      final repository = _FakeAccountRepository();
+      await pumpPage(
+        tester,
+        repository,
+        loginMethods: loginMethodsFor(TargetPlatform.iOS),
+      );
+
+      await tester.tap(find.text('Appleでログイン'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Appleアカウントで、ログインします'), findsOneWidget);
+
+      await tester.tap(find.text('ログインする'));
+      await tester.pumpAndSettle();
+      expect(repository.signedIn, [LoginMethod.apple]);
+    });
+  });
 
   group('ゲスト', () {
     testWidgets('ゲスト利用中と、登録の案内・登録のボタンを表示する', (tester) async {
@@ -268,7 +332,7 @@ void main() {
 
     testWidgets('登録で、すでに登録済みのGoogleアカウントだったら、「ログイン」へ誘導する', (tester) async {
       final repository = _FakeAccountRepository()
-        ..registerError = const AccountAlreadyRegisteredException();
+        ..registerError = AccountAlreadyRegisteredException();
       await pumpPage(tester, repository);
 
       await tester.tap(find.text('Googleで登録する'));

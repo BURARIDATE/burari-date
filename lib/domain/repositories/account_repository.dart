@@ -19,11 +19,14 @@ class AccountCancelledException extends AccountException {
   const AccountCancelledException() : super('キャンセルしました');
 }
 
-/// 登録しようとしたGoogleアカウントが、すでに別のアカウントとして、登録済みであること
+/// 登録しようとした[method]のアカウントが、すでに別のアカウントとして、登録済みであること
 /// を表す例外(Issue #136)。画面は、「ログイン」から入るよう、案内する。
 class AccountAlreadyRegisteredException extends AccountException {
-  const AccountAlreadyRegisteredException()
-    : super('このGoogleアカウントは、すでに登録されています。「Googleでログイン」から、入ってください。');
+  AccountAlreadyRegisteredException([LoginMethod method = LoginMethod.google])
+    : super(
+        'この${method.label}アカウントは、すでに登録されています。'
+        '「${method.label}でログイン」から、入ってください。',
+      );
 }
 
 /// アカウントの状態の取得・登録・ログイン・ログアウト(Issue #129・#130・#136)。
@@ -50,6 +53,9 @@ abstract class AccountRepository {
 
   /// いまのアカウントを削除する(Issue #191)。サーバーが、履歴・お気に入り・購読の情報などを
   /// 削除し、削除後は、ゲストの状態に戻る。**元に戻せない**。購読は、自動では解約されない
-  /// (Google Playで、別に解約が必要)。失敗したときは[AccountException]を投げる。
+  /// (ストアで、別に解約が必要)。Appleで登録したアカウントは、先にAppleでの確認を求め、
+  /// Appleとの連携を解除する(App Storeの審査ガイドライン5.1.1(v))。その確認を取りやめた
+  /// ときは[AccountCancelledException]を投げ、削除しない。失敗したときは[AccountException]
+  /// を投げる。
   Future<AccountStatus> deleteAccount();
 }
