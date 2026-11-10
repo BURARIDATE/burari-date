@@ -44,14 +44,27 @@ Google Playは[ストア公開チェックリスト](ストア公開チェック
 
 ### スクリーンショット
 
-- 「Dynamic Island搭載iPhone(中型ディスプレイ)」に **1206×2622px** を最大10枚。iPadは不要
-- Google Play用の画像は、サイズが合わず、Androidの画面(ナビゲーションバー・Google Playの案内)が写るので**使えない**(ガイドライン2.3.10)
-- iPhone 18 Proのシミュレーターで撮る。`xcrun simctl io <UDID> screenshot`、ステータスバーは`xcrun simctl status_bar <UDID> override`で整える
-- サブスクの商品にも、審査用のスクリーンショット(プランの画面)が1枚要る
+- 「Dynamic Island搭載iPhone(中型ディスプレイ)」に **1206×2622px**(iPhone 18 Proのシミュレーター)を7枚。iPadは不要
+- Google Play用の画像は、Androidの画面(ステータスバー・ナビゲーション)が写っているので**そのまま使えない**(ガイドライン2.3.10)。Play用と同じ見出し・デザインで、中の画面だけiPhoneに差し替える
+- 1.0.0の画像: `~/Downloads/burari_appstore_iphone_1206x2622/`(リポジトリの外)
+
+撮り方(本番のサーバーにつながる。ガチャを1回使う):
+
+```bash
+# 1. シミュレーターで画面を進め、7枚を撮る(ホーム・出発駅・ガチャ・到着駅・グルメ・詳細・観光)
+tool/ios_screenshots/shoot.sh <iPhone 18 ProのUDID> /tmp/ios_raw
+# 2. Play用の合成画像(01〜07、1080x1920)の見出しを使って、1206x2622に合成する
+swift tool/ios_screenshots/compose.swift play/05.png /tmp/ios_raw/05_food.png out/05_food.jpg 448
+```
+
+- 到着駅はPlay用と同じ**目黒駅**にそろえている(渋谷駅・JR山手線・品川駅方面・ちょうど2駅隣)。候補(グルメ・観光)は、その日の検索結果で変わる
+- 合成の最後の引数は、Play用の画像のスマホの枠の上端より少し上の高さ(01:461、02:446、03:461、04:458、05:448、06:455、07:456)
+- iOSでは、アプリを入れ直しても**無料の回数はリセットされない**(Firebaseの匿名ログインがキーチェーンに残る)。上限に達したら、別のシミュレーターで撮る
+- 全画面の通しの確認は `tool/ios_screenshots/shoot.sh <UDID> /tmp/walk integration_test/full_walkthrough_test.dart`(ガチャを2回使う。エラーの文言が出た画面を「CHECK-NG:」で出す)
 
 ### App Review に関する情報
 
-- **サインイン情報**: ログインしなくても使える(ゲストで無料10回)。購読中の状態を見てもらうため、審査用のアカウントを用意し、RevenueCatで**プロモーションの権利**(`burari_date_pro`)を付けておくと確実
+- **サインイン情報**: 「サインインが必要」の**チェックを外す**。ログインしなくても主な機能が使え(ゲストで無料10回)、登録(Appleでサインイン)・購入は、審査担当者が自分のApple Accountとサンドボックスで試せるため、審査用のアカウントは用意しない
 - **メモ**(英語)の基本:
 
 ```
