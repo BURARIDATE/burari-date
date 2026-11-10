@@ -25,7 +25,7 @@ Google Playは[ストア公開チェックリスト](ストア公開チェック
 - [x] App Store Connectでアプリを作成する(名前「ぶらりデートガチャ」、プライマリ言語は日本語、Bundle ID `com.buraridate.burariDate`、SKU `burari-date-ios`。EUのDSAは「トレーダーではない(EUで配信しない)」)
 - [x] 有料アプリ契約(銀行口座・税務。W-8BENは日米租税条約12条1項・0%)を結ぶ
 - [x] サブスクの商品を作り、RevenueCatにつなぎ、`kRevenueCatIosApiKey`を入れる([環境構築手順 7-3](環境構築手順.md))
-- [x] Appleでサインインを設定する(Firebaseの「Apple」の有効化・連携の解除用のキー。[環境構築手順 7-6](環境構築手順.md))。キーは Key ID `K497YXG2HX`(Sign in with Apple、Primary App ID `com.buraridate.burariDate`)。Firebaseの「OAuth コードフローの構成」は、サービスIDに**Bundle ID** `com.buraridate.burariDate`・チームID・キーID・秘密鍵を入れた(iOSのネイティブのログインだけなので、Web用のサービスIDは作っていない。TestFlightで、Appleで登録したアカウントの削除が通るかを確かめる)
+- [x] Appleでサインインを設定する(Firebaseの「Apple」の有効化・連携の解除用のキー。[環境構築手順 7-6](環境構築手順.md))。キーは Key ID `K497YXG2HX`(Sign in with Apple、Primary App ID `com.buraridate.burariDate`)。Firebaseの「OAuth コードフローの構成」は、サービスIDに**Bundle ID** `com.buraridate.burariDate`・チームID・キーID・秘密鍵を入れた(iOSのネイティブのログインだけなので、Web用のサービスIDは作っていない。TestFlightの1.0.0(5)で、Appleで登録したアカウントの削除(連携の解除)が通ることを確かめた)
 - [x] App Check: Apple Developer → Keys で DeviceCheck のキー(Key ID `M4JU6TA74P`)を作り、Firebaseコンソール → App Check → iOSアプリ → DeviceCheck に、キー・Key ID・Team IDを登録する(トークンの有効期間は1時間。登録しないと、本番版のトークンが`INVALID`になる。サーバーが必須にするまでは、動きは止まらない)
 - [ ] 公開サイトをデプロイする(規約・ポリシーにApple・App Storeを書いた版): `firebase deploy --only hosting --project burari-date`
 
@@ -114,6 +114,14 @@ The app does not use the device location. Locations are only the station the use
 - [ ] `kRevenueCatIosApiKey`が入っている(空だと購入できず、却下される)
 - [ ] `pubspec.yaml`の`version`のビルド番号が、App Store Connectにアップロード済みのものより大きい
 - [ ] TestFlightで、本番版を実機で確かめる: 起動・同意・ガチャ、Appleで登録・ログイン・削除、Googleで登録・ログイン、サンドボックスでの購入・復元・解約の案内
+
+### TestFlightでの確認(1.0.0(5)、2026-11-10)
+
+本番版(prod)を内部テストで入れ、次を確かめた: 同意・Appleで登録・サンドボックスでの購入・「定期購入を管理する」・ログアウトとAppleでログインでの購読の引き継ぎ・アカウントの削除(Appleとの連携の解除)。
+
+サンドボックス(テストの購入)で、本番と違って見えること:
+- 価格が**ドル**(月額$1.99など)で出ることがある。テスト用のアカウントの国が米国のため。商品・アプリの配信は日本だけで、本番の日本の利用者には¥300で出る
+- テストで買ったサブスクは、本物のアカウントの「サブスクリプション」の一覧に**出ない**。解約は「設定」→「App Store」→「サンドボックスアカウント」→「アカウントを管理」から行う(Appleのサーバーで「接続できません」になることがある)。TestFlightの購読は、短い間隔で数回更新されたあと、自動で終わる
 
 ## 4. ビルドとアップロード
 
