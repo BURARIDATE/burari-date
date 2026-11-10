@@ -15,6 +15,11 @@ jobs:
     name: Build PROD (Android)
     runs-on: ubuntu-latest
 
+    # GitHub Releaseを作るために、書き込みの権限が要る。リポジトリの既定は読み取りだけなので、
+    # 指定しないと、Release作成が403で失敗する。
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
