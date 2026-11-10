@@ -9,6 +9,11 @@ Google Playは[ストア公開チェックリスト](ストア公開チェック
 |---|---|
 | Team ID | `4N5F9L6BC2`(`ios/Runner.xcodeproj`の`DEVELOPMENT_TEAM`) |
 | Bundle ID | prod `com.buraridate.burariDate` / dev `.dev` / stg `.stg`(**App Store Connectでアプリを作ると、変えられない**。iOSはアンダースコアを使えないため、Androidの`com.buraridate.burari_date`とは違う) |
+| App Store ID(アプリのApple ID) | `6832859521`(`https://apps.apple.com/jp/app/id6832859521`。公開されるまでは開けない) |
+| SKU | `burari-date-ios` |
+| サブスクの商品 | 製品ID `burari_date_monthly`(グループ「プラン」、1か月・¥300・日本のみ・ファミリー共有オフ)。RevenueCatでEntitlement `burari_date_pro`と、Offering `default`の`$rc_monthly`につないだ |
+| RevenueCatのiOSの公開APIキー | `kRevenueCatIosApiKey`(`lib/core/config/revenuecat.dart`) |
+| アプリ内課金キー | Key ID `M755UM4B3F`(RevenueCatに登録済み。`.p8`は手元の`~/Keys/app-store-connect/`に保管) |
 | Firebase のiOSアプリ | `1:889357641434:ios:b58cd38ba9138f612d27e3`(prod のBundle IDで登録。dev・stgも同じプロジェクトにつながる) |
 | 対応端末 | iPhone専用・縦固定・iOS 15.0以上(iPadのスクリーンショット・審査が不要) |
 | Entitlement | `burari_date_pro`(Androidと共通) |
@@ -17,9 +22,9 @@ Google Playは[ストア公開チェックリスト](ストア公開チェック
 
 ## 1. 初回だけ行う設定
 
-- [ ] App Store Connectでアプリを作成する(名前「ぶらりデートガチャ」、プライマリ言語は日本語、Bundle ID `com.buraridate.burariDate`、SKU `burari-date-ios`)
-- [ ] 有料アプリ契約(銀行口座・税務)を結ぶ
-- [ ] サブスクの商品を作り、RevenueCatにつなぎ、`kRevenueCatIosApiKey`を入れる([環境構築手順 7-3](環境構築手順.md))
+- [x] App Store Connectでアプリを作成する(名前「ぶらりデートガチャ」、プライマリ言語は日本語、Bundle ID `com.buraridate.burariDate`、SKU `burari-date-ios`。EUのDSAは「トレーダーではない(EUで配信しない)」)
+- [x] 有料アプリ契約(銀行口座・税務。W-8BENは日米租税条約12条1項・0%)を結ぶ
+- [x] サブスクの商品を作り、RevenueCatにつなぎ、`kRevenueCatIosApiKey`を入れる([環境構築手順 7-3](環境構築手順.md))
 - [ ] Appleでサインインを設定する(Firebaseの「Apple」の有効化・連携の解除用のキー。[環境構築手順 7-6](環境構築手順.md))
 - [ ] App Check: Apple Developer → Keys で DeviceCheck のキーを作り、Firebaseコンソール → App Check → iOSアプリ → DeviceCheck に、キー・Key ID・Team IDを登録する(登録しないと、本番版のトークンが`INVALID`になる。サーバーが必須にするまでは、動きは止まらない)
 - [ ] 公開サイトをデプロイする(規約・ポリシーにApple・App Storeを書いた版): `firebase deploy --only hosting --project burari-date`
