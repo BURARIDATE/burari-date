@@ -25,7 +25,7 @@
 
 ## ブランチ・PRの運用: GitHub Flow + タグリリース
 
-環境ごとの長命ブランチ（dev/stg/prodブランチ）は作らない。環境の切り替えはFlavor（`lib/main_dev.dart`/`main_stg.dart`/`main_prod.dart`、Android productFlavorsで別パッケージ名）で行う（[環境とブランチ運用](docs/環境とブランチ運用.md)参照）。iOSのFlavor分けは未対応（Xcode環境がないため）。
+環境ごとの長命ブランチ（dev/stg/prodブランチ）は作らない。環境の切り替えはFlavor（`lib/main_dev.dart`/`main_stg.dart`/`main_prod.dart`、Android productFlavors・iOSのスキームとxcconfigで別パッケージ名）で行う（[環境とブランチ運用](docs/環境とブランチ運用.md)参照）。
 
 ```text
 main                    ← これ1本

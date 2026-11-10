@@ -1,0 +1,6 @@
+// stg環境のiOS固有の設定(Androidのproductフレーバーstgに対応する)。
+// Debug-stg / Profile-stg / Release-stg.xcconfig から include される。
+// Flutter標準のGenerated.xcconfigは、Debug/Release.xcconfig経由で読み込まれる。
+
+BUNDLE_ID_SUFFIX = .stg
+BUNDLE_DISPLAY_NAME = ぶらりデートガチャ Stg
