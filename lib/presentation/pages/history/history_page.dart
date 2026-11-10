@@ -6,7 +6,6 @@ import '../../../core/constants/app_font_sizes.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../domain/entities/gacha_history_entry.dart';
-import '../../../domain/entities/railway_line.dart';
 import '../../providers/gacha_history_providers.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../favorite/favorite_list_page.dart';
@@ -67,11 +66,12 @@ class _HistoryRow extends StatelessWidget {
 
   final GachaHistoryEntry entry;
 
-  String get _directionLabel => switch (entry.direction) {
-    GachaDirection.up => 'up方面',
-    GachaDirection.down => 'down方面',
-    GachaDirection.random => 'おまかせ',
-  };
+  /// 「中野駅から3駅隣(高尾駅方面)」の、括弧の部分。方面の駅名が分からない古い履歴では、
+  /// 内部の値(up・down)を見せないよう、方面を出さない。
+  String get _directionSuffix {
+    final terminus = entry.directionTerminusName;
+    return terminus == null ? '' : '($terminus方面)';
+  }
 
   String get _formattedDate =>
       '${entry.executedAt.month}/${entry.executedAt.day}';
@@ -95,7 +95,7 @@ class _HistoryRow extends StatelessWidget {
                 ),
               ),
               Text(
-                '${entry.departureStationName}から${entry.stopsCount}駅隣($_directionLabel)',
+                '${entry.departureStationName}から${entry.stopsCount}駅隣$_directionSuffix',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: AppFontSizes.caption,

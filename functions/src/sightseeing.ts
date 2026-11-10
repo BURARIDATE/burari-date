@@ -55,7 +55,41 @@ export async function searchSightseeing(
     throw new Error(`Foursquare Places API呼び出しに失敗しました: ${res.status}`);
   }
   const body = (await res.json()) as { results?: RawFoursquarePlace[] };
-  return (body.results ?? []).map(toRawPlace);
+  return (body.results ?? []).filter((p) => !isUnsuitableForDate(p)).map(toRawPlace);
+}
+
+/**
+ * デートの行き先として出さない場所の、カテゴリ名・場所の名前に含まれる語(小文字で比べる)。
+ * 「Outdoors & Recreation」「Arts & Entertainment」の大分類には、喫煙所・麻雀店・パチンコ店
+ * なども入るため、取得したあとに外す(全画面の通しの確認で見つけた。Issue #251)。
+ * 賭け事・成人向けは、App Storeの年齢制限の申告にも関わる。
+ */
+const UNSUITABLE_KEYWORDS = [
+  "smoking", // 喫煙所(Smoking Area)
+  "喫煙",
+  "mahjong", // 麻雀店
+  "麻雀",
+  "pachinko", // パチンコ・パチスロ
+  "pachislot",
+  "パチンコ",
+  "パチスロ",
+  "casino",
+  "gambling",
+  "betting", // 場外馬券場など(Off-Track Betting)
+  "lottery",
+  "adult",
+  "strip club",
+  "hostess",
+];
+
+/** デートの行き先として出さない場所か(カテゴリ名・場所の名前で判断する)。 */
+export function isUnsuitableForDate(place: {
+  name?: string;
+  categories?: { name?: string }[];
+}): boolean {
+  const texts = [place.name ?? "", ...(place.categories ?? []).map((c) => c.name ?? "")]
+    .map((t) => t.toLowerCase());
+  return texts.some((t) => UNSUITABLE_KEYWORDS.some((k) => t.includes(k)));
 }
 
 function toRawPlace(place: RawFoursquarePlace): RawPlace {
