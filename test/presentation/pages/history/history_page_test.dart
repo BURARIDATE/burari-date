@@ -39,6 +39,7 @@ void main() {
           stopsCount: 3,
           direction: GachaDirection.up,
           executedAt: DateTime(2026, 9, 18),
+          directionTerminusName: '高尾駅',
         ),
         GachaHistoryEntry(
           departureStationName: '渋谷駅',
@@ -61,10 +62,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('新宿駅'), findsOneWidget);
-      expect(find.text('中野駅から3駅隣(up方面)'), findsOneWidget);
+      expect(find.text('中野駅から3駅隣(高尾駅方面)'), findsOneWidget);
       expect(find.text('9/18'), findsOneWidget);
       expect(find.text('恵比寿駅'), findsOneWidget);
-      expect(find.text('渋谷駅から1駅隣(down方面)'), findsOneWidget);
+      // 方面の駅名がない古い履歴は、内部の値(down)を出さず、方面を省く。
+      expect(find.text('渋谷駅から1駅隣'), findsOneWidget);
+      expect(find.textContaining('down'), findsNothing);
     });
 
     testWidgets('読み込み中はローディング表示になる', (tester) async {
