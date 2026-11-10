@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { anthropicApiKey, describePlaces, generateCandidates, extractText, parsePicks, requireCandidates, toCandidates } from "./ai";
+import { anthropicApiKey, describeApiError, describePlaces, generateCandidates, extractText, parsePicks, requireCandidates, toCandidates } from "./ai";
 import type { RawPlace } from "./types";
 
 const place = (id: string): RawPlace => ({ id, name: id });
@@ -153,4 +153,24 @@ test("紹介文が一部の場所に足りない・空のときは、成功に�
     content: [{ type: "text", text: "[]" }],
   })));
   await assert.rejects(describePlaces("駅", "gourmet", [place("p0")]), /全件/);
+});
+
+test("APIの失敗は、Anthropicが返した理由もエラーに含める(残高不足などを見分けるため)", async (t) => {
+  t.mock.method(anthropicApiKey, "value", () => "test-key");
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({
+    type: "error",
+    error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." },
+  }), { status: 400 }));
+  await assert.rejects(
+    generateCandidates("駅", "gourmet", [place("a")]),
+    /400 \(invalid_request_error: Your credit balance is too low/,
+  );
+});
+
+test("理由を取り出せない応答では、理由を付けない", async () => {
+  assert.equal(await describeApiError(new Response("error", { status: 503 })), "");
+  assert.equal(await describeApiError(new Response("{}", { status: 400 })), "");
+  const long = "x".repeat(500);
+  const described = await describeApiError(new Response(JSON.stringify({ error: { message: long } }), { status: 400 }));
+  assert.equal(described, ` (${"x".repeat(300)})`);
 });
