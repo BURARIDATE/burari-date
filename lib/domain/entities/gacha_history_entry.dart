@@ -15,6 +15,7 @@ class GachaHistoryEntry {
     required this.stopsCount,
     required this.direction,
     required this.executedAt,
+    this.directionTerminusName,
   });
 
   factory GachaHistoryEntry.fromGachaResult(GachaResult result) {
@@ -25,6 +26,11 @@ class GachaHistoryEntry {
       stopsCount: result.stopsCount,
       direction: result.direction,
       executedAt: result.executedAt,
+      directionTerminusName: switch (result.direction) {
+        GachaDirection.up => result.line.endTerminus.name,
+        GachaDirection.down => result.line.startTerminus.name,
+        GachaDirection.random => null,
+      },
     );
   }
 
@@ -36,6 +42,8 @@ class GachaHistoryEntry {
       stopsCount: json['stopsCount'] as int,
       direction: GachaDirection.values.byName(json['direction'] as String),
       executedAt: DateTime.parse(json['executedAt'] as String),
+      // 2026-11より前の履歴には、ない。
+      directionTerminusName: json['directionTerminusName'] as String?,
     );
   }
 
@@ -46,6 +54,10 @@ class GachaHistoryEntry {
   final GachaDirection direction;
   final DateTime executedAt;
 
+  /// 進んだ方面の終点の駅名(例: 高尾駅)。履歴に「高尾駅方面」と出すため。
+  /// 2026-11より前に保存した履歴は、方面の駅名を持たないため、null。
+  final String? directionTerminusName;
+
   Map<String, dynamic> toJson() {
     return {
       'departureStationName': departureStationName,
@@ -54,6 +66,8 @@ class GachaHistoryEntry {
       'stopsCount': stopsCount,
       'direction': direction.name,
       'executedAt': executedAt.toIso8601String(),
+      if (directionTerminusName != null)
+        'directionTerminusName': directionTerminusName,
     };
   }
 }
