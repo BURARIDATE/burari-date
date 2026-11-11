@@ -131,7 +131,8 @@ The app does not use the device location. Locations are only the station the use
 ### 価格および配信状況
 
 - 価格: 「価格スケジュール」で、基準を日本・**¥0(無料)**(アプリ内課金あり)。未設定だと「価格帯を選択する必要があります」で提出できない
-- 配信地域: 日本だけ
+- **アプリの配信状況**: 「配信状況の設定」で**日本**を選んで保存する(価格の設定とは別。**選ばないと、承認されても「App Storeから削除済み」になり、どこにも出ない**。1.0.0は、承認のあとに気づいて設定した)
+- 「Appleシリコン搭載のMac」「Apple Vision Pro」での配信は、確かめていないので、チェックを外す(推奨)
 
 ## 3. 提出前の確認
 
@@ -160,6 +161,8 @@ flutter build ipa --flavor prod -t lib/main_prod.dart
 4. 結果は24〜48時間が目安。質問は App Review のメッセージに届く
 
 ## 6. 承認後
+
+承認されると、状態が「**配信準備完了**」(緑)になる。1.0.0は、提出した日のうちに承認された。
 
 1. 「このバージョンをリリース」で公開する
 2. App Storeから入れて、起動・購入(本番)・App Check(Firebaseのログの`verifications.app`が`VALID`)を確かめる
